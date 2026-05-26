@@ -1,0 +1,23 @@
+{
+  "id": 27,
+  "chat_id": -1003916280400,
+  "topic_id": 17,
+  "date": "2026-05-26T02:46:30+00:00",
+  "message": "https://t.me/c/3916280400/17/26",
+  "raw_text": "https://t.me/c/3916280400/17/26",
+  "out": true,
+  "from_id": 7325219806,
+  "sender_name": "Sudo",
+  "fwd_from": null,
+  "reply_to": "MessageReplyHeader(reply_to_scheduled=False, forum_topic=True, quote=False, reply_to_msg_id=17, reply_to_peer_id=None, reply_from=None, reply_media=None, reply_to_top_id=None, quote_text=None, quote_entities=[], quote_offset=None, todo_item_id=None, poll_option=None)",
+  "edit_date": null,
+  "media": {
+    "has_media": true,
+    "media_type": null,
+    "mime_type": null
+  },
+  "urls": [
+    "https://t.me/c/3916280400/17/26"
+  ],
+  "is_edit": false
+}

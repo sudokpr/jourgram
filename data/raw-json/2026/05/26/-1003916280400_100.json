@@ -1,0 +1,17 @@
+{
+  "id": 100,
+  "chat_id": -1003916280400,
+  "topic_id": 18,
+  "date": "2026-05-26T05:24:12+00:00",
+  "message": "One again human",
+  "raw_text": "One again human",
+  "out": true,
+  "from_id": 7325219806,
+  "sender_name": "Sudo",
+  "fwd_from": null,
+  "reply_to": "MessageReplyHeader(reply_to_scheduled=False, forum_topic=True, quote=False, reply_to_msg_id=18, reply_to_peer_id=None, reply_from=None, reply_media=None, reply_to_top_id=None, quote_text=None, quote_entities=[], quote_offset=None, todo_item_id=None, poll_option=None)",
+  "edit_date": null,
+  "media": null,
+  "urls": [],
+  "is_edit": false
+}

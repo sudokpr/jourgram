@@ -1,0 +1,17 @@
+{
+  "id": 98,
+  "chat_id": -1003916280400,
+  "topic_id": null,
+  "date": "2026-05-26T05:21:08+00:00",
+  "message": "This is a test message from the human",
+  "raw_text": "This is a test message from the human",
+  "out": true,
+  "from_id": 7325219806,
+  "sender_name": "Sudo",
+  "fwd_from": null,
+  "reply_to": null,
+  "edit_date": null,
+  "media": null,
+  "urls": [],
+  "is_edit": false
+}

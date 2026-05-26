@@ -273,10 +273,12 @@ class IngestionService:
                 # Start update loop in background
                 update_task = asyncio.create_task(self._client.run_until_disconnected())
                 
-                # Also poll for messages since event handlers aren't working
+                poll_interval = self.settings.scheduler.ingestion_poll_interval if self.settings.scheduler else 3600
+
+                # Poll on interval for batch sync
                 while self._running:
                     await self._poll_once()
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(poll_interval)
                 
                 update_task.cancel()
                 self._client.disconnect()

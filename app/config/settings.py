@@ -76,6 +76,7 @@ class SchedulerConfig(BaseModel):
     daily_summary_minute: int = 0
     weekly_review_day: int = 6
     weekly_review_hour: int = 18
+    ingestion_poll_interval: int = 3600
 
 
 class Settings(BaseSettings):
