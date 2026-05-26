@@ -218,13 +218,10 @@ class IngestionService:
             return
 
         try:
-            conn = await self._db.get_connection()
-            async with conn:
-                await conn.execute(
-                    """INSERT OR IGNORE INTO raw_events (chat_id, topic_id, message_id, raw_json, processed_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)""",
-                    (chat_id, topic_id or 0, message_id, str(payload)),
-                )
-                await conn.commit()
+            await self._db.execute(
+                """INSERT OR IGNORE INTO raw_events (chat_id, topic_id, message_id, raw_json, processed_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)""",
+                (chat_id, topic_id or 0, message_id, str(payload)),
+            )
         except Exception as e:
             logger.warning("store_event_error", error=str(e))
 
@@ -252,19 +249,16 @@ class IngestionService:
         try:
             import json
 
-            conn = await self._db.get_connection()
-            async with conn:
-                await conn.execute(
-                    """INSERT INTO processing_jobs (job_type, event_id, status, payload, priority) VALUES (?, ?, ?, ?, ?)""",
-                    (
-                        "normalize",
-                        None,
-                        "pending",
-                        json.dumps({"chat_id": chat_id, "message_id": message_id, "topic_id": topic_id}),
-                        1 if topic_id else 0,
-                    ),
-                )
-                await conn.commit()
+            await self._db.execute(
+                """INSERT INTO processing_jobs (job_type, event_id, status, payload, priority) VALUES (?, ?, ?, ?, ?)""",
+                (
+                    "normalize",
+                    None,
+                    "pending",
+                    json.dumps({"chat_id": chat_id, "message_id": message_id, "topic_id": topic_id}),
+                    1 if topic_id else 0,
+                ),
+            )
         except Exception as e:
             logger.warning("queue_processing_error", error=str(e))
 
