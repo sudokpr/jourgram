@@ -159,8 +159,9 @@ class IngestionService:
 
         urls = []
         text = getattr(message, "message", "") or getattr(message, "text", "") or ""
-        if hasattr(message, "entities"):
-            for entity in message.entities:
+        entities = getattr(message, "entities", None)
+        if entities:
+            for entity in entities:
                 if hasattr(entity, "url"):
                     urls.append(entity.url)
 
@@ -198,6 +199,9 @@ class IngestionService:
             return None
 
         fwd = message.fwd_from
+        if fwd is None:
+            return None
+
         result = {}
         if hasattr(fwd, "from_id") and fwd.from_id:
             result["from_id"] = fwd.from_id
@@ -205,7 +209,7 @@ class IngestionService:
             result["from_name"] = fwd.from_name
         if hasattr(fwd, "date") and fwd.date:
             result["date"] = fwd.date.isoformat()
-        return result
+        return result if result else None
 
     async def _store_event(self, chat_id: int, topic_id: int | None, message_id: int, payload: dict) -> None:
         """Store event in database."""
@@ -294,20 +298,25 @@ class IngestionService:
         try:
             count = 0
             async for message in self._client.iter_messages(config.chat_id, limit=10, min_id=self._last_message_id):
+                if message is None:
+                    continue
                 if message.id <= self._last_message_id:
                     continue
 
-                self._last_message_id = message.id
-                chat_id = message.chat_id if hasattr(message, "chat_id") else 0
-                topic_id = self._extract_topic_id(None, message)
-                payload = await self._extract_payload(message, topic_id)
+                try:
+                    self._last_message_id = message.id
+                    chat_id = message.chat_id if hasattr(message, "chat_id") else 0
+                    topic_id = self._extract_topic_id(None, message)
+                    payload = await self._extract_payload(message, topic_id)
 
-                await self._raw_storage.store(chat_id, message.id, payload, message.date)
-                await self._store_event(chat_id, topic_id, message.id, payload)
-                await self._queue_processing(chat_id, message.id, topic_id)
+                    await self._raw_storage.store(chat_id, message.id, payload, message.date)
+                    await self._store_event(chat_id, topic_id, message.id, payload)
+                    await self._queue_processing(chat_id, message.id, topic_id)
 
-                logger.info("polled_message", message_id=message.id, topic_id=topic_id)
-                count += 1
+                    logger.info("polled_message", message_id=message.id, topic_id=topic_id)
+                    count += 1
+                except Exception as e:
+                    logger.error("message_processing_error", error=str(e), message_id=getattr(message, 'id', None))
             if count == 0:
                 logger.debug("poll_no_messages", last_id=self._last_message_id)
         except Exception as e:
