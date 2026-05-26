@@ -29,6 +29,7 @@ class TelegramConfig(BaseModel):
     api_hash: str
     phone: str
     session_name: str = "life-data-lake"
+    chat_id: int | None = None
     topics: TelegramTopics = Field(default_factory=TelegramTopics)
     flood_sleep_threshold: int = 60
     reconnect_delay: int = 5

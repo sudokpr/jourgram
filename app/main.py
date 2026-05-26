@@ -36,6 +36,7 @@ def ingest(
 ) -> None:
     """Start Telegram ingestion service."""
     from app.ingestion.service import IngestionService
+    import asyncio
 
     settings = Settings.from_env()
     service = IngestionService(settings)
@@ -43,7 +44,7 @@ def ingest(
         typer.echo(f"Backfilling last {days} days...")
     typer.echo("Starting ingestion service... Press Ctrl+C to stop.")
     try:
-        service.run()
+        asyncio.run(service.run())
     except KeyboardInterrupt:
         typer.echo("\nStopping ingestion...")
 

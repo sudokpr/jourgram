@@ -10,7 +10,7 @@ from telethon import TelegramClient
 from telethon.errors import (
     FloodWaitError,
     PhoneMigrateError,
-    ServerMigrateError,
+    NetworkMigrateError,
     TimeoutError as TelethonTimeoutError,
 )
 from telethon.network import ConnectionTcpFull
@@ -102,7 +102,7 @@ class ReconnectingTelegramClient(TelegramClientManager):
             try:
                 await self.start()
                 return
-            except (ServerMigrateError, PhoneMigrateError) as e:
+            except (NetworkMigrateError, PhoneMigrateError) as e:
                 logger.warning("migration_error", attempt=attempt, error=str(e))
                 await asyncio.sleep(self._reconnect_delay * (attempt + 1))
             except FloodWaitError as e:

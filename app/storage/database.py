@@ -218,10 +218,10 @@ class Database:
 
     async def get_connection(self) -> aiosqlite.Connection:
         """Get a database connection."""
-        conn = await aiosqlite.connect(self.db_path)
+        conn = aiosqlite.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
+        await conn.execute("PRAGMA foreign_keys = ON")
+        await conn.execute("PRAGMA journal_mode = WAL")
         return conn
 
     async def execute(self, query: str, params: tuple | None = None) -> sqlite3.Cursor:

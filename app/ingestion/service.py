@@ -7,7 +7,7 @@ from pathlib import Path
 
 import structlog
 from telethon import TelegramClient, events
-from telethon.errors import FloodWaitError, ServerMigrateError, PhoneMigrateError
+from telethon.errors import FloodWaitError, PhoneMigrateError, NetworkMigrateError
 
 from app.config.settings import Settings
 from app.storage import Database, RawJsonStorage
@@ -44,11 +44,18 @@ class IngestionService:
 
         await self._client.start(phone=config.phone)
 
-        self._client.add_event_handler(self._handle_new_message, events.NewMessage)
-        self._client.add_event_handler(self._handle_message_edit, events.MessageEdited)
-        self._client.add_event_handler(self._handle_new_channel_message, events.NewMessage(incoming=True, chats=[]))
+        chats_filter = [config.chat_id] if config.chat_id else []
 
-        logger.info("ingestion_service_initialized")
+        self._client.add_event_handler(
+            self._handle_new_message,
+            events.NewMessage(chats=chats_filter if chats_filter else None)
+        )
+        self._client.add_event_handler(
+            self._handle_message_edit,
+            events.MessageEdited(chats=chats_filter if chats_filter else None)
+        )
+
+        logger.info("ingestion_service_initialized", chat_id=config.chat_id)
 
     async def _handle_new_message(self, event: events.NewMessage) -> None:
         """Handle new message events."""
@@ -98,10 +105,6 @@ class IngestionService:
 
         except Exception as e:
             logger.error("edit_ingestion_error", error=str(e))
-
-    async def _handle_new_channel_message(self, event: events.NewMessage) -> None:
-        """Handle new channel messages in topics."""
-        pass
 
     def _extract_topic_id(self, event: events.NewMessage, message: Any) -> int | None:
         """Extract topic/thread ID from message."""
@@ -173,7 +176,7 @@ class IngestionService:
             "from_id": sender_id,
             "sender_name": sender_name,
             "fwd_from": self._extract_forwarded_from(message),
-            "reply_to": getattr(message, "reply_to", None),
+            "reply_to": str(message.reply_to) if hasattr(message, "reply_to") and message.reply_to else None,
             "edit_date": message.edit_date.isoformat() if hasattr(message, "edit_date") and message.edit_date else None,
             "media": {
                 "has_media": has_media,
@@ -204,7 +207,8 @@ class IngestionService:
         if not self._db:
             return
 
-        async with self._db.get_connection() as conn:
+        conn = await self._db.get_connection()
+        async with conn:
             await conn.execute(
                 """INSERT OR IGNORE INTO raw_events (chat_id, topic_id, message_id, raw_json, processed_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)""",
                 (chat_id, topic_id or 0, message_id, str(payload)),
@@ -216,7 +220,8 @@ class IngestionService:
         if not self._db:
             return
 
-        async with self._db.get_connection() as conn:
+        conn = await self._db.get_connection()
+        async with conn:
             await conn.execute(
                 """UPDATE raw_events SET raw_json = ?, processed_at = CURRENT_TIMESTAMP WHERE chat_id = ? AND message_id = ?""",
                 (str(payload), chat_id, message_id),
@@ -230,7 +235,8 @@ class IngestionService:
 
         import json
 
-        async with self._db.get_connection() as conn:
+        conn = await self._db.get_connection()
+        async with conn:
             await conn.execute(
                 """INSERT INTO processing_jobs (job_type, event_id, status, payload, priority) VALUES (?, ?, ?, ?, ?)""",
                 (
@@ -255,7 +261,7 @@ class IngestionService:
         except FloodWaitError as e:
             logger.info("flood_wait", seconds=e.seconds)
             await asyncio.sleep(e.seconds)
-        except (ServerMigrateError, PhoneMigrateError) as e:
+        except (NetworkMigrateError, PhoneMigrateError) as e:
             logger.error("migration_error", error=str(e))
             await asyncio.sleep(5)
         except Exception as e:
