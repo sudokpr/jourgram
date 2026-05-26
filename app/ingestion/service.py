@@ -214,49 +214,59 @@ class IngestionService:
     async def _store_event(self, chat_id: int, topic_id: int | None, message_id: int, payload: dict) -> None:
         """Store event in database."""
         if not self._db:
+            logger.warning("store_event_no_db")
             return
 
-        conn = await self._db.get_connection()
-        async with conn:
-            await conn.execute(
-                """INSERT OR IGNORE INTO raw_events (chat_id, topic_id, message_id, raw_json, processed_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)""",
-                (chat_id, topic_id or 0, message_id, str(payload)),
-            )
-            await conn.commit()
+        try:
+            conn = await self._db.get_connection()
+            async with conn:
+                await conn.execute(
+                    """INSERT OR IGNORE INTO raw_events (chat_id, topic_id, message_id, raw_json, processed_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)""",
+                    (chat_id, topic_id or 0, message_id, str(payload)),
+                )
+                await conn.commit()
+        except Exception as e:
+            logger.warning("store_event_error", error=str(e))
 
     async def _update_event(self, chat_id: int, topic_id: int | None, message_id: int, payload: dict) -> None:
         """Update existing event."""
         if not self._db:
             return
 
-        conn = await self._db.get_connection()
-        async with conn:
-            await conn.execute(
-                """UPDATE raw_events SET raw_json = ?, processed_at = CURRENT_TIMESTAMP WHERE chat_id = ? AND message_id = ?""",
-                (str(payload), chat_id, message_id),
-            )
-            await conn.commit()
+        try:
+            conn = await self._db.get_connection()
+            async with conn:
+                await conn.execute(
+                    """UPDATE raw_events SET raw_json = ?, processed_at = CURRENT_TIMESTAMP WHERE chat_id = ? AND message_id = ?""",
+                    (str(payload), chat_id, message_id),
+                )
+                await conn.commit()
+        except Exception as e:
+            logger.warning("update_event_error", error=str(e))
 
     async def _queue_processing(self, chat_id: int, message_id: int, topic_id: int | None) -> None:
         """Queue message for async processing."""
         if not self._db:
             return
 
-        import json
+        try:
+            import json
 
-        conn = await self._db.get_connection()
-        async with conn:
-            await conn.execute(
-                """INSERT INTO processing_jobs (job_type, event_id, status, payload, priority) VALUES (?, ?, ?, ?, ?)""",
-                (
-                    "normalize",
-                    None,
-                    "pending",
-                    json.dumps({"chat_id": chat_id, "message_id": message_id, "topic_id": topic_id}),
-                    1 if topic_id else 0,
-                ),
-            )
-            await conn.commit()
+            conn = await self._db.get_connection()
+            async with conn:
+                await conn.execute(
+                    """INSERT INTO processing_jobs (job_type, event_id, status, payload, priority) VALUES (?, ?, ?, ?, ?)""",
+                    (
+                        "normalize",
+                        None,
+                        "pending",
+                        json.dumps({"chat_id": chat_id, "message_id": message_id, "topic_id": topic_id}),
+                        1 if topic_id else 0,
+                    ),
+                )
+                await conn.commit()
+        except Exception as e:
+            logger.warning("queue_processing_error", error=str(e))
 
     async def run(self) -> None:
         """Run the ingestion service."""
