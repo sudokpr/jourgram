@@ -1,0 +1,19 @@
+[project]
+name = "life-data-lake"
+version = "0.1.0"
+type = "module"
+
+[settings]
+telegram = { api_id = 12345, api_hash = "your_api_hash", phone = "+1234567890", session_name = "life-data-lake" }
+storage = { data_dir = "./data", media_dir = "./data/media", raw_json_dir = "./data/raw-json" }
+gemini = { api_key = "your_api_key", model_daily = "gemini-2.5-flash", model_deep = "gemini-2.5-pro" }
+processing = { max_workers = 4, batch_size = 50 }
+scheduler = { daily_summary_hour = 20, daily_summary_minute = 0 }
+
+[telegram.topics]
+journal = 1
+learning = 2
+ideas = 3
+expenses = 4
+links = 5
+quick_dump = 6

@@ -1,0 +1,1 @@
+"""Bot module placeholder - bot is TypeScript/grammY based."""

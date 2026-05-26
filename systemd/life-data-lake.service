@@ -1,0 +1,15 @@
+[Unit]
+Description=Life Data Lake Ingestion Service
+After=network.target
+
+[Service]
+Type=simple
+User=kp
+WorkingDirectory=/home/kp/workspace/projects/jourgram
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/kp/workspace/projects/jourgram/venv/bin/python -m app.main ingest
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

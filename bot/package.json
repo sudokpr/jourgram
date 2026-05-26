@@ -1,0 +1,24 @@
+{
+  "name": "life-data-lake-bot",
+  "version": "0.1.0",
+  "description": "grammY bot interface for Life Data Lake",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@grammyjs/cli": "^4.0.0",
+    "@grammyjs/fancy": "^3.0.0",
+    "@grammyjs/menu": "^2.0.0",
+    "@grammyjs/parse": "^2.0.0",
+    "@grammyjs/root": "^3.0.0",
+    "grammy": "^1.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.4.0"
+  }
+}

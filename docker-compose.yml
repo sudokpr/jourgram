@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  life-data-lake:
+    build: .
+    container_name: life-data-lake
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+      - .env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - life-data-lake-net
+
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: life-data-lake-bot
+    depends_on:
+      - life-data-lake
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - API_URL=http://life-data-lake:8000
+    restart: unless-stopped
+    networks:
+      - life-data-lake-net
+
+networks:
+  life-data-lake-net:
+    driver: bridge

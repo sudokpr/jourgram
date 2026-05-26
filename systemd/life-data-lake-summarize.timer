@@ -1,0 +1,10 @@
+[Unit]
+Description=Life Data Lake Daily Summary Timer
+After=network.target
+
+[Timer]
+OnCalendar=20:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
