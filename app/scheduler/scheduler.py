@@ -61,13 +61,70 @@ class Scheduler:
                     await self._run_daily_summary()
 
     async def _run_daily_summary(self) -> None:
-        """Run the daily summary."""
+        """Run the daily summary and send to Telegram."""
         try:
             summarizer = DailySummarizer(self.settings)
-            await summarizer.summarize_today()
+            summary = await summarizer.summarize_today()
             logger.info("daily_summary_completed")
+            await self._send_summary_to_telegram(summary)
         except Exception as e:
             logger.error("daily_summary_failed", error=str(e))
+
+    async def _send_summary_to_telegram(self, summary: dict) -> None:
+        """Send summary to Telegram LifeOS chat."""
+        try:
+            from app.telegram.client import TelegramClientManager
+
+            client = TelegramClientManager(self.settings)
+            await client.start()
+
+            chat_id = self.settings.telegram.chat_id
+            if not chat_id:
+                logger.warning("no_chat_id_configured")
+                return
+
+            date_str = summary.get("date", "today")
+            content = summary.get("content", summary.get("summary", ""))
+            metrics = summary.get("metrics", {})
+
+            themes = metrics.get("themes", [])
+            todos = metrics.get("todos", [])
+            learnings = metrics.get("learnings", [])
+            ideas = metrics.get("ideas", [])
+
+            message = f"📅 *Daily Summary - {date_str}*\n\n"
+            message += f"{content}\n\n"
+
+            if themes:
+                message += "🧠 *Themes:*\n"
+                for theme in themes[:5]:
+                    message += f"  • {theme}\n"
+                message += "\n"
+
+            if todos:
+                message += "✅ *Todos:*\n"
+                for todo in todos[:5]:
+                    message += f"  • {todo}\n"
+                message += "\n"
+
+            if learnings:
+                message += "📚 *Learnings:*\n"
+                for learning in learnings[:3]:
+                    message += f"  • {learning}\n"
+                message += "\n"
+
+            if ideas:
+                message += "💡 *Ideas:*\n"
+                for idea in ideas[:3]:
+                    message += f"  • {idea}\n"
+                message += "\n"
+
+            await client.client.send_message(chat_id, message.strip(), parse_mode="md")
+            logger.info("summary_sent_to_telegram", chat_id=chat_id)
+
+            await client.stop()
+        except Exception as e:
+            logger.error("send_summary_to_telegram_failed", error=str(e))
 
     async def _link_processing_loop(self) -> None:
         """Loop that periodically processes pending links."""
