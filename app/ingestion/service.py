@@ -44,6 +44,11 @@ class IngestionService:
 
         await self._client.start(phone=config.phone)
 
+        # Get the last message ID to start from
+        self._last_message_id = 0
+        async for msg in self._client.iter_messages(config.chat_id, limit=1):
+            self._last_message_id = msg.id
+
         chats_filter = [config.chat_id] if config.chat_id else []
 
         self._client.add_event_handler(
@@ -55,7 +60,7 @@ class IngestionService:
             events.MessageEdited(chats=chats_filter if chats_filter else None)
         )
 
-        logger.info("ingestion_service_initialized", chat_id=config.chat_id)
+        logger.info("ingestion_service_initialized", chat_id=config.chat_id, last_id=self._last_message_id)
 
     async def _handle_new_message(self, event: events.NewMessage) -> None:
         """Handle new message events."""
@@ -257,7 +262,18 @@ class IngestionService:
 
         try:
             if self._client:
-                await self._client.run_until_disconnected()
+                # Start update loop in background
+                update_task = asyncio.create_task(self._client.run_until_disconnected())
+                
+                # Also poll for messages since event handlers aren't working
+                while self._running:
+                    await self._poll_once()
+                    await asyncio.sleep(3)
+                
+                update_task.cancel()
+                self._client.disconnect()
+        except asyncio.CancelledError:
+            logger.info("service_cancelled")
         except FloodWaitError as e:
             logger.info("flood_wait", seconds=e.seconds)
             await asyncio.sleep(e.seconds)
@@ -268,6 +284,34 @@ class IngestionService:
             logger.error("ingestion_error", error=str(e))
         finally:
             self._running = False
+
+    async def _poll_once(self) -> None:
+        """Poll for new messages once."""
+        if not self._client or not self.settings.telegram:
+            return
+
+        config = self.settings.telegram
+        try:
+            count = 0
+            async for message in self._client.iter_messages(config.chat_id, limit=10, min_id=self._last_message_id):
+                if message.id <= self._last_message_id:
+                    continue
+
+                self._last_message_id = message.id
+                chat_id = message.chat_id if hasattr(message, "chat_id") else 0
+                topic_id = self._extract_topic_id(None, message)
+                payload = await self._extract_payload(message, topic_id)
+
+                await self._raw_storage.store(chat_id, message.id, payload, message.date)
+                await self._store_event(chat_id, topic_id, message.id, payload)
+                await self._queue_processing(chat_id, message.id, topic_id)
+
+                logger.info("polled_message", message_id=message.id, topic_id=topic_id)
+                count += 1
+            if count == 0:
+                logger.debug("poll_no_messages", last_id=self._last_message_id)
+        except Exception as e:
+            logger.warning("poll_error", error=str(e))
 
     async def stop(self) -> None:
         """Stop the ingestion service."""
